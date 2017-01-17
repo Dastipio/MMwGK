@@ -1,95 +1,470 @@
-//#include "stdafx.h"
-#include <windows.h>
-#include <GL/gl.h>
 #include <GL/glut.h>
-#include <vector>
+#include <math.h>
+#include <playsoundapi.h>
 
-using namespace std;
+#define BASE_HEIGHT 4.0/2
+#define BASE_RADIUS 1.0/2
+#define HEAD_HEIGHT 1.25/2
+#define HEAD_RADIUS 0.75/2
+#define NECK_HEIGHT 0.5/2
+#define EYE_LEVEL 0.75/2
+#define NOSE_LENGTH 0.5/2
+#define LOWER_ARM_HEIGHT 2.0/2
+#define LOWER_ARM_WIDTH 0.5/2
 
-class Triangle
-{
-public:
-	Triangle(vector<float>, float*);
-	void Draw() const;
-	float *a, *b, *c, *color;
-};
+#define ARM_TRANSLATION 0.22/2
+#define alpha 0.0
+#define pi 3.14159265
 
-Triangle::Triangle(vector<float> abc, float* color1)
-{
-	this->a = new float[2]{ abc[0], abc[1] };
-	this->b = new float[2]{ abc[0] + abc[2], abc[1] };
-	this->c = new float[2]{ abc[0], abc[1] + abc[2] };
-	this->color = new float[4]{ color1[0], color1[1],color1[2], color1[3] };
+static GLfloat theta[] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+static GLint axis = 0;
+GLUquadricObj *p;
+GLfloat x = 0.0;
+GLfloat y = 0.0;
+GLfloat xpos = 0.0;
+GLfloat ypos = 0.0;
+GLfloat zpos = 0.0;
+GLfloat ambient[3]; //otoczenie
+GLfloat diffuse[3]; // przenikanie
+GLfloat specular[3]; //odbicie geome
+GLfloat shiness[] = { 50.0f };
+
+float width = 500;
+float height = 500;
+
+void base(void);
+void head(void);
+void neck(void);
+void right_arm(void);
+void left_arm(void);
+void init(void);
+void display(void);
+void reshape(int width, int height);
+void keyboard(unsigned char, int, int);
+void processSpecialKeys(int, int, int);
+void lsphere(void);
+void init1(void);
+
+void base(void) {
+	double angle, angleInc;
+	int i;
+	angle = pi / 180;
+	angleInc = angle;
+	glPushMatrix();
+
+	ambient[0] = 1.0; ambient[1] = 0.0; ambient[2] = 0.0;
+	diffuse[0] = 1.0; diffuse[1] = 0.0; diffuse[2] = 0.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glRotatef(-90.0, 1.0, 0.0, 0.0);
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluCylinder(p, BASE_RADIUS, BASE_RADIUS, BASE_HEIGHT, 20, 20);
+
+	glPopMatrix();
+
+	glPushMatrix();
+
+	gluQuadricDrawStyle(p, GLU_FILL);
+	glTranslatef(0.0, BASE_HEIGHT, 0.0);
+	glRotatef(-90.0, 1.0, 0.0, 0.0);
+	gluDisk(p, 0.0, BASE_RADIUS, 20, 20);
+	glTranslatef(0.0, 0.0, -BASE_HEIGHT);
+	gluDisk(p, 0.0, BASE_RADIUS, 20, 20);
+	glPopMatrix();
 }
 
-void Triangle::Draw() const
-{
+
+void neck(void) {
+	glPushMatrix();
+
+	ambient[0] = 1.0; ambient[1] = 1.0; ambient[2] = 0.0;
+	diffuse[0] = 1.0; diffuse[1] = 1.0; diffuse[2] = 0.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glTranslatef(0.0, BASE_HEIGHT, 0.0);
+	glRotatef(-90.0, 1.0, 0.0, 0.0);
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluCylinder(p, HEAD_RADIUS / 2, HEAD_RADIUS / 2, HEAD_HEIGHT, 8, 6);
+	glPopMatrix();
+}
+
+void head(void) {
+	glPushMatrix();
+
+	ambient[0] = 1.0; ambient[1] = 0.0; ambient[2] = 1.0;
+	diffuse[0] = 1.0; diffuse[1] = 0.0; diffuse[2] = 1.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glRotatef(-90.0, 1.0, 0.0, 0.0);
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluCylinder(p, HEAD_RADIUS, HEAD_RADIUS, HEAD_HEIGHT, 20, 20);
+
+	glPushMatrix();
+
+	gluDisk(p, 0.0, HEAD_RADIUS, 20, 20);
+	glTranslatef(0.0, 0.0, HEAD_HEIGHT);
+	gluDisk(p, 0.0, HEAD_RADIUS, 20, 20);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(0.25, -HEAD_RADIUS + 0.12, EYE_LEVEL);
+
+	ambient[0] = 1.0; ambient[1] = 1.0; ambient[2] = 1.0;
+	diffuse[0] = 1.0; diffuse[1] = 1.0; diffuse[2] = 1.0;
+	specular[0] = 0.5; specular[1] = 0.5; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluSphere(p, 0.125, 6, 6);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-0.25, -HEAD_RADIUS + 0.12, EYE_LEVEL);
+	ambient[0] = 1.0; ambient[1] = 1.0; ambient[2] = 1.0;
+	diffuse[0] = 1.0; diffuse[1] = 1.0; diffuse[2] = 1.0;
+	specular[0] = 0.5; specular[1] = 0.5; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluSphere(p, 0.125, 6, 6);
+	glPopMatrix();
+
+	glPushMatrix();
+	ambient[0] = 1.0; ambient[1] = 0.5; ambient[2] = 0.0;
+	diffuse[0] = 1.0; diffuse[1] = 0.5; diffuse[2] = 0.0;
+	specular[0] = 0.5; specular[1] = 0.5; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+	glTranslatef(0.0, -HEAD_RADIUS, NOSE_LENGTH);
+	glRotatef(90.0, 1.0, 0.0, 0.0);
+	gluQuadricDrawStyle(p, GLU_FILL);
+	gluCylinder(p, 0.125, 0, NOSE_LENGTH, 8, 6);
+	glPopMatrix();
+
+	glPopMatrix();
+}
+
+void right_arm(void) {
+	glPushMatrix();
+
+	ambient[0] = 0.0; ambient[1] = 1.0; ambient[2] = 0.0;
+	diffuse[0] = 0.0; diffuse[1] = 1.0; diffuse[2] = 0.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glTranslatef(0.0, 0.5 * LOWER_ARM_HEIGHT, ARM_TRANSLATION);
+	glScalef(LOWER_ARM_WIDTH, LOWER_ARM_HEIGHT, LOWER_ARM_WIDTH);
+	glutSolidCube(1.0);
+	glPopMatrix();
+}
+
+void left_arm(void) {
+	glPushMatrix();
+
+	ambient[0] = 0.0; ambient[1] = 1.0; ambient[2] = 0.0;
+	diffuse[0] = 0.0; diffuse[1] = 1.0; diffuse[2] = 0.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glTranslatef(0.0, 0.5 * LOWER_ARM_HEIGHT, -ARM_TRANSLATION);
+	glScalef(LOWER_ARM_WIDTH, LOWER_ARM_HEIGHT, LOWER_ARM_WIDTH);
+	glutSolidCube(1.0);
+	glPopMatrix();
+}
+
+void init1(void) {
+	GLfloat mat_specular[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat mat_shininess[] = { 50.0 };
+	GLfloat light_position[] = { 1.0, 1.0, 1.0, 1.0 };
+	GLfloat white_light[] = { 0.3, 0.3, 0.3, 1.0 };
+	GLfloat lmodel_ambient[] = { 1.0, 1.0, 0.0, 1.0 };
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glShadeModel(GL_SMOOTH);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat_specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, mat_shininess);
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, white_light);
+	glLightfv(GL_LIGHT0, GL_SPECULAR, white_light);
+	glLightModelfv(GL_LIGHT_MODEL_AMBIENT, lmodel_ambient);
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glEnable(GL_DEPTH_TEST);
+}
+
+void lsphere(void) {
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glutSolidSphere(1.0, 20, 16);
+	glFlush();
+}
+
+void display(void) {
+
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glLoadIdentity();
+	gluLookAt(2.0, 9.0, 10.0, 0.0, 1.25, 0.0, 0.0, 1.0, 0.0);//ustawienie kamery
+
+	glPushMatrix();
+	ambient[0] = 1.0; ambient[1] = 0.3; ambient[2] = 0.3;
+	diffuse[0] = 1.0; diffuse[1] = 1.0; diffuse[2] = 1.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+
+	glTranslatef(0.0, 5.0, 0.0);
+	lsphere();
+	glPopMatrix();
+
+
+
+
+	glPushMatrix();
+	ambient[0] = 0.3; ambient[1] = 0.3; ambient[2] = 0.3;
+	diffuse[0] = 0.0; diffuse[1] = 0.0; diffuse[2] = 1.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glTranslatef(3.0, 0.5, 1.0);
+	glutSolidCube(1.0);
+	glPopMatrix();
+
+
+
+
+	glPushMatrix();
+	ambient[0] = 0.3; ambient[1] = 0.3; ambient[2] = 0.3;
+	diffuse[0] = 1.0; diffuse[1] = 0.0; diffuse[2] = 0.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
+	glTranslatef(-3.0, 0.5, -3.0);
+	glPopMatrix();
+
+
+
+
+	glPushMatrix();
+	ambient[0] = 0.5; ambient[1] = 0.5; ambient[2] = 0.5;
+	diffuse[0] = 1.0; diffuse[1] = 1.0; diffuse[2] = 1.0;
+	specular[0] = 0.7; specular[1] = 0.6; specular[2] = 0.5;
+
+	glMaterialfv(GL_FRONT, GL_AMBIENT, ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, specular);
+	glMaterialfv(GL_FRONT, GL_SHININESS, shiness);
+
 	glBegin(GL_POLYGON);
-	glColor4fv(this->color);//Red;
-	glVertex2fv(this->a);
-	glVertex2fv(this->b);
-	glVertex2fv(this->c);
+	glVertex3f(5.0, 0.0, 5.0);
+	glVertex3f(5.0, 0.0, -5.0);
+	glVertex3f(-5.0, 0.0, -5.0);
+	glVertex3f(-5.0, 0.0, 5.0);
+	glVertex3f(5.0, 0.0, 5.0);
 	glEnd();
+
+	glPopMatrix();
+
+	glTranslatef(xpos, ypos, zpos);
+	glRotatef(theta[0], 0.0, 1.0, 0.0);
+	base();
+	neck();
+
+	glPushMatrix();
+	glTranslatef(0.0, BASE_HEIGHT + HEAD_HEIGHT / 2, 0.0);
+	glRotatef(theta[2], 1.0, 0.0, 0.0);
+	glRotatef(theta[1], 0.0, 1.0, 0.0);
+	head();
+	glPopMatrix();
+
+
+	glPushMatrix();
+	glTranslatef(BASE_RADIUS, BASE_HEIGHT - BASE_RADIUS / 2, 0.0);
+	glRotatef(180.0, 0.0, 0.0, 1.0);
+	glRotatef(270.0, 0.0, 1.0, 0.0);
+	glRotatef(theta[4], 0.0, 0.0, 1.0);
+	right_arm();
+	glTranslatef(0.0, LOWER_ARM_HEIGHT, 0.0);
+	glRotatef(0.0, 0.0, 0.0, 180.0);
+	glRotatef(theta[6], 0.0, 0.0, 1.0);
+	glPopMatrix();
+
+	glPushMatrix();
+	glTranslatef(-BASE_RADIUS, BASE_HEIGHT - BASE_RADIUS / 2, 0.0);
+	glRotatef(180.0, 0.0, 0.0, 1.0);
+	glRotatef(270.0, 0.0, 1.0, 0.0);
+	glRotatef(theta[3], 0.0, 0.0, 1.0);
+	left_arm();
+	glTranslatef(0.0, LOWER_ARM_HEIGHT, 0.0);
+	glRotatef(0.0, 0.0, 0.0, 180.0);
+	glRotatef(theta[5], 0.0, 0.0, 1.0);
+	glPopMatrix();
+
+
+	glFlush();
+	glutSwapBuffers();
 }
 
+void keyboard(unsigned char key, int x, int y) {
+	switch (key) {
+	case 'a': theta[1] += 5.0;
+		if (theta[1] > 90.0)
+			theta[1] = 90.0;
+		break;
+	case 'z': theta[1] -= 5.0;
+		if (theta[1] < -90.0)
+			theta[1] = -90.0;
+		break;
 
-void MyDisplay(void)
-{
-	// Wyswietlana scena - poczatek
-	glLoadIdentity();
-	glClear(GL_COLOR_BUFFER_BIT);
+	case 'o': theta[2] += 5.0;
+		if (theta[2] > 45.0)
+			theta[2] = 45.0;
+		break;
 
-	float colors[6][4] = {
-		{1,0,0,1},
-		{1,1,0,1},
-		{1,1,1,1},
-		{1,0,1,1},
-		{0,1,0,1},
-		{0,0,1,1}
-	};
+	case 'p': theta[2] -= 5.0;
+		if (theta[2] < -45.0)
+			theta[2] = -45.0;
+		break;
 
-	vector<vector<float>> points;
+	case 'k': theta[3] -= 5.0; break;
+	case 'l': theta[3] += 5.0; break;
 
-	vector<Triangle> triangles;
-	float a = 80;
-	float sx = 100, sy = 100;
+	case 'h': theta[4] -= 5.0; break;
+	case 'j': theta[4] += 5.0; break;
 
-	for (auto i = 0, j = 3; i < 3; i++, j--)
-	{
-		for (auto k = 0; k < j; k++)
-		{
-			points.push_back({ sx + (a * i),sy + (a * k), a });
-		}
+	case 'e': theta[0] = theta[1] = theta[2] = theta[3] = theta[4]= xpos = ypos = zpos = 0.0;
+		break;
+
+	case 'r': theta[0] = theta[1] = theta[2] = theta[3] = theta[4] = 0.0;
+		break;
+
+	case 'x':
+		PlaySound(TEXT("r2d2.wav"), nullptr, SND_SYNC | SND_FILENAME);
+		break;
+
+	case 'q': exit(0); break;
 	}
-
-	for (auto i = 0; i < 6; i++)
-	{
-		Triangle(points.at(i), colors[i]).Draw();
-	}
-
-	glFlush();//start processing buffered OpenGL routines
+	glutPostRedisplay();
 }
 
-void MyInit(void)
-{
-	glClearColor(0.0, 0.0, 0.0, 0.0);//select clearing (background) color
-	glViewport(0, 0, 300, 300);//pocz•tek u.ws. lewy górny róg
-	glMatrixMode(GL_PROJECTION);//Nast•pne 2 wiersze b•d• modyfikowa³y m. PROJECTION
-	glLoadIdentity();//inicjalizacja
-	gluOrtho2D(0.0, 500.0 * 1.2, 0.0, 500.0);
-	glMatrixMode(GL_MODELVIEW); //Nast•pny wiersz b•dzie modyfikowa³ m. MODELVIEW
+
+void processSpecialKeys(int key, int x, int y) {
+	switch (key) {
+	case GLUT_KEY_UP:
+		xpos -= cos(90 * pi / 180 + theta[0] * pi / 180);
+		zpos += sin(90 * pi / 180 + theta[0] * pi / 180);
+		if (xpos > 3)
+			xpos = 3;
+		if (zpos > 3)
+			zpos = 3;
+		if (xpos < -3)
+			xpos = -3;
+		if (zpos < -3)
+			zpos = -3;
+		break;
+	case GLUT_KEY_DOWN:
+		xpos += cos(90 * pi / 180 + theta[0] * pi / 180);
+		zpos -= sin(90 * pi / 180 + theta[0] * pi / 180);
+		if (xpos > 3)
+			xpos = 3;
+		if (zpos > 3)
+			zpos = 3;
+		if (xpos < -3)
+			xpos = -3;
+		if (zpos < -3)
+			zpos = -3;
+		break;
+	case GLUT_KEY_LEFT: theta[0] -= 5.0; break;
+	case GLUT_KEY_RIGHT: theta[0] += 5.0; break;
+	case GLUT_KEY_PAGE_UP: ypos += 1.0; break;
+	case GLUT_KEY_PAGE_DOWN: ypos -= 1.0; break;
+	}
+	glutPostRedisplay();
+}
+
+void reshape(int w, int h) {
+	glViewport(0, 0, w, h);
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+	gluPerspective(100.0, (GLfloat)w / (GLfloat)h, 0.5, 100.0);
+	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 }
 
-int main(int argc, char** argv)
-{
+void init(void) {
+	GLfloat lightIntensity[] = { 0.7f, 0.7f, 0.7f, 1.0f };
+	GLfloat light_position[] = { 2.0f, 6.0f, 3.0f, 0.0f };
+
+	glEnable(GL_LIGHTING);
+	glEnable(GL_LIGHT0);
+	glShadeModel(GL_SMOOTH);
+	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_NORMALIZE);
+
+	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
+	glLightfv(GL_LIGHT0, GL_DIFFUSE, lightIntensity);
+
+	glClearColor(0.0, 0.0, 0.0, 0.0);
+	glColor3f(1.0, 0.0, 0.0);
+	p = gluNewQuadric();
+}
+
+int main(int argc, char **argv) {
 	glutInit(&argc, argv);
-	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);//single buffer and RGBA
-	glutInitWindowSize(250, 250);//initial window size
-	glutInitWindowPosition(100, 100);
-	glutCreateWindow("My window");//create widnow, hello title bar
-	MyInit();
-	glutDisplayFunc(MyDisplay);
-	glutMainLoop();//enter main loop and process events
+	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+	glutInitWindowSize(width, height);
+	glutCreateWindow("Robot");
+	init();
+	init1();
+	glutReshapeFunc(reshape);
+	glutDisplayFunc(display);
+	glutKeyboardFunc(keyboard);
+	glutSpecialFunc(processSpecialKeys);
+	glutMainLoop();
 	return 0;
 }
